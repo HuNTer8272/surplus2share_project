@@ -1,16 +1,9 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Menu, LogOut, Settings, User } from "lucide-react";
-import { 
-  SignInButton, 
-  SignUpButton, 
-  SignedIn, 
-  SignedOut, 
-  UserButton,
-  useClerk,
-  useUser
-} from '@clerk/nextjs';
 import { Button } from "./ui/button";
 import {
   Sheet,
@@ -27,10 +20,33 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
+import Cookies from "js-cookie";
 
 const Navbar = () => {
-  const { signOut } = useClerk();
-  const { user } = useUser();
+  const router = useRouter();
+  const [userData, setUserData] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  
+  // Function to check authentication status
+  const checkAuth = () => {
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      try {
+        setUserData(JSON.parse(storedUser));
+      } catch (error) {
+        console.error('Error parsing user data:', error);
+        setUserData(null);
+      }
+    } else {
+      setUserData(null);
+    }
+    setIsLoading(false);
+  };
+  
+  useEffect(() => {
+    // Check if user is logged in on component mount
+    checkAuth();
+  }, []);
   
   const navItems = [
     { label: "Home", href: "/" },
@@ -39,8 +55,19 @@ const Navbar = () => {
   ];
 
   const handleSignOut = () => {
-    signOut();
+    // Clear authentication data
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    Cookies.remove('token');
+    
+    // Update state immediately to reflect logged out status
+    setUserData(null);
+    
+    // Navigate to login page
+    router.push('/login');
   };
+
+  const isAuthenticated = !!userData;
 
   return (
     <nav className="sticky top-0 z-50 w-full border-b bg-background">
@@ -92,20 +119,24 @@ const Navbar = () => {
                     </Link>
                   ))}
                   <div className="pt-4">
-                    <SignedOut>
-                      <div className="flex flex-col space-y-3">
-                        <SignInButton mode="modal">
-                          <Button variant="outline" className="w-full text-foreground/80 hover:text-primary">
-                            Sign In
+                    {!isAuthenticated && !isLoading && (
+                      <div>
+                        <Link href="/login" className="w-full">
+                          <Button className="w-full py-2 text-base bg-primary hover:bg-primary/90">
+                            Login
                           </Button>
-                        </SignInButton>
-                        <SignUpButton mode="modal">
-                          <Button className="w-full bg-primary hover:bg-primary/90">
-                            Sign Up
-                          </Button>
-                        </SignUpButton>
+                        </Link>
                       </div>
-                    </SignedOut>
+                    )}
+                    {isAuthenticated && (
+                      <Button 
+                        className="w-full py-2 text-base bg-destructive hover:bg-destructive/90"
+                        onClick={handleSignOut}
+                      >
+                        <LogOut className="mr-2 h-4 w-4" />
+                        Log out
+                      </Button>
+                    )}
                   </div>
                 </div>
               </SheetContent>
@@ -114,19 +145,21 @@ const Navbar = () => {
 
           {/* Auth Buttons (Desktop) */}
           <div className="hidden md:flex md:items-center md:space-x-4">
-            <SignedIn>
+            {isAuthenticated && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <div className="cursor-pointer">
-                    <UserButton afterSignOutUrl="/" />
-                  </div>
+                  <Button variant="ghost" className="relative h-10 w-10 rounded-full">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-white text-base">
+                      {userData?.name?.[0] || 'U'}
+                    </div>
+                  </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56 bg-background border-border">
                   <DropdownMenuLabel className="font-normal">
                     <div className="flex flex-col space-y-1">
-                      <p className="text-sm font-medium leading-none text-foreground">{user?.fullName}</p>
+                      <p className="text-sm font-medium leading-none text-foreground">{userData?.name}</p>
                       <p className="text-xs leading-none text-muted-foreground">
-                        {user?.primaryEmailAddress?.emailAddress}
+                        {userData?.email}
                       </p>
                     </div>
                   </DropdownMenuLabel>
@@ -153,19 +186,14 @@ const Navbar = () => {
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-            </SignedIn>
-            <SignedOut>
-              <SignInButton mode="modal">
-                <Button variant="outline" size="sm" className="text-foreground/80 hover:text-primary">
-                  Sign In
+            )}
+            {!isAuthenticated && !isLoading && (
+              <Link href="/login">
+                <Button className="px-6 py-2 text-base bg-primary hover:bg-primary/90">
+                  Login
                 </Button>
-              </SignInButton>
-              <SignUpButton mode="modal">
-                <Button size="sm" className="bg-primary hover:bg-primary/90">
-                  Sign Up
-                </Button>
-              </SignUpButton>
-            </SignedOut>
+              </Link>
+            )}
           </div>
         </div>
       </div>
