@@ -13,7 +13,6 @@ export default function Home() {
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
-    // Check if user is logged in
     const storedUser = localStorage.getItem('user');
     if (storedUser) {
       try {

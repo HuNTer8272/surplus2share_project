@@ -26,26 +26,54 @@ model User {
 }
 
 model Donor {
-  id        String   @id @default(uuid())
-  userId    String   @unique
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id        String     @id @default(uuid())
+  userId    String     @unique
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   phone     String?
   address   String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  donations Donation[]
 }
 
 model Receiver {
-  id        String   @id @default(uuid())
-  userId    String   @unique
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  phone     String?
-  address   String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id           String         @id @default(uuid())
+  userId       String         @unique
+  user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  phone        String?
+  address      String?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  donations    Donation[]     @relation("ClaimedDonations")
+}
+
+model Donation {
+  id            String         @id @default(uuid())
+  title         String
+  description   String?
+  foodType      String
+  quantity      Int
+  quantityUnit  String         @default("kg")
+  pickupAddress String
+  pickupDate    DateTime
+  expirationDate DateTime?
+  status        DonationStatus @default(AVAILABLE)
+  donorId       String
+  donor         Donor          @relation(fields: [donorId], references: [id], onDelete: Cascade)
+  receiverId    String?
+  receiver      Receiver?      @relation("ClaimedDonations", fields: [receiverId], references: [id])
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
 }
 
 enum Role {
   DONOR
   RECEIVER
+}
+
+enum DonationStatus {
+  AVAILABLE
+  CLAIMED
+  COMPLETED
+  CANCELLED
 }

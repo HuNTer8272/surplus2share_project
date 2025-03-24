@@ -121,4 +121,5 @@ router.put('/profile', validate(updateProfileSchema), async (req, res) => {
   }
 });
 
+
 module.exports = router; 

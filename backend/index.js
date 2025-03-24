@@ -6,6 +6,7 @@ require('dotenv').config();
 const authRoutes = require('./routes/auth.routes');
 const donorRoutes = require('./routes/donor.routes');
 const receiverRoutes = require('./routes/receiver.routes');
+const donationRoutes = require('./routes/donation.routes');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -18,6 +19,7 @@ app.use(express.json());
 app.use('/api/auth', authRoutes);
 app.use('/api/donor', donorRoutes);
 app.use('/api/receiver', receiverRoutes);
+app.use('/api/donations', donationRoutes);
 
 // Start the server
 app.listen(PORT, () => {
