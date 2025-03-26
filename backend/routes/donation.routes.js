@@ -47,6 +47,17 @@ const isDonor = (req, res, next) => {
   next();
 };
 
+// Check if user is a receiver
+const isReceiver = (req, res, next) => {
+  if (req.user.role !== 'RECEIVER') {
+    return res.status(403).json({
+      success: false,
+      message: 'Access denied. Receiver role required',
+    });
+  }
+  next();
+};
+
 // Protect all donation routes
 router.use(authMiddleware);
 
@@ -311,11 +322,64 @@ router.patch('/:id/cancel', isDonor, async (req, res) => {
 });
 
 /**
- * @route GET /api/donations/me
+ * @route GET /api/donations/all/available
+ * @description Get all available donations for receivers
+ * @access Private (Receivers only)
+ */
+router.get('/all/available', isReceiver, async (req, res) => {
+  try {
+    // Find receiver associated with the user
+    const receiver = await prisma.receiver.findUnique({
+      where: { userId: req.user.id },
+    });
+
+    if (!receiver) {
+      return res.status(404).json({
+        success: false,
+        message: 'Receiver profile not found',
+      });
+    }
+
+    // Query all available donations
+    const availableDonations = await prisma.donation.findMany({
+     
+      include: {
+        donor: {
+          include: {
+            user: {
+              select: {
+                name: true,
+                email: true,
+              },
+            },
+          },
+        }
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    res.status(200).json({
+      success: true,
+      count: availableDonations.length,
+      data: availableDonations,
+    });
+  } catch (error) {
+    console.error('Get available donations error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while fetching available donations',
+    });
+  }
+});
+
+/**
+ * @route GET /api/donations/all/me
  * @description Get logged in user's donations
  * @access Private
  */
-router.get('/me', async (req, res) => {
+router.get('/all/me', async (req, res) => {
   try {
     // Find all donations by user based on role
     if (req.user.role === 'DONOR') {
@@ -378,4 +442,4 @@ router.get('/me', async (req, res) => {
   }
 });
 
-module.exports = router; 
+module.exports = router;
